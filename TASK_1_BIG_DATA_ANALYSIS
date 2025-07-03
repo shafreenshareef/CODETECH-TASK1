@@ -1,0 +1,135 @@
+# Task 1: Big Data Analysis with PySpark (CODTECH Internship)
+# Dataset: yellow_tripdata_2025-01.parquet
+# Goal: Demonstrate scalability through real-world big data insights
+
+# Install PySpark
+!pip install pyspark --quiet
+
+# Import required libraries
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, hour, dayofweek, avg, count, sum as _sum, \
+    unix_timestamp, round, max as _max, min as _min
+
+# Start Spark session
+spark = SparkSession.builder.appName("NYC Yellow Taxi ").getOrCreate()
+
+# Load dataset
+df = spark.read.parquet("yellow_tripdata_2025-01.parquet")
+
+# CLEANING
+
+# Clean invalid rows
+df_clean = df.filter(
+    (col("fare_amount") > 0) &
+    (col("trip_distance") > 0) &
+    (col("total_amount") > 0) &
+    (col("passenger_count") > 0) &
+    (col("passenger_count") <= 6) &
+    (col("tpep_pickup_datetime").isNotNull()) &
+    (col("tpep_dropoff_datetime").isNotNull()) &
+    (col("tpep_dropoff_datetime") > col("tpep_pickup_datetime"))
+)
+
+# BASIC METRICS
+
+print("Cleaned Dataset Overview:")
+print("Total Rows After Cleaning:", df_clean.count())
+print("Total Columns:", len(df_clean.columns))
+df_clean.printSchema()
+
+print("Date Range:")
+df_clean.selectExpr("min(tpep_pickup_datetime)", "max(tpep_dropoff_datetime)").show()
+
+# CORE ANALYSIS
+
+# Top Pickup Zones
+print("Top 10 Pickup Locations:")
+df_clean.groupBy("PULocationID").count().orderBy(col("count").desc()).show(10)
+
+# Top Dropoff Zones
+print("Top 10 Dropoff Locations:")
+df_clean.groupBy("DOLocationID").count().orderBy(col("count").desc()).show(10)
+
+# Average fare by passenger count
+print("Avg Fare by Passenger Count:")
+df_clean.groupBy("passenger_count").agg(avg("fare_amount").alias("avg_fare")).orderBy("passenger_count").show()
+
+# Trip count by hour of day
+print("Trips by Hour of Day:")
+df_clean.withColumn("pickup_hour", hour("tpep_pickup_datetime")) \
+    .groupBy("pickup_hour").agg(count("*").alias("trip_count")).orderBy("pickup_hour").show(24)
+
+# Trip count by day of week
+print("Trips by Day of Week:")
+df_clean.withColumn("pickup_day", dayofweek("tpep_pickup_datetime")) \
+    .groupBy("pickup_day").agg(count("*").alias("trip_count")).orderBy("pickup_day").show()
+
+# Total Revenue
+print("Total Revenue:")
+df_clean.selectExpr("sum(total_amount) as total_revenue").show()
+
+# Avg trip distance and fare
+print("Avg Trip Distance and Fare:")
+df_clean.select(avg("trip_distance").alias("avg_trip_distance"), avg("fare_amount").alias("avg_fare")).show()
+
+# Payment types
+print("Payment Type Breakdown:")
+df_clean.groupBy("payment_type").count().orderBy("count", ascending=False).show()
+
+# Average tip for credit card payments
+print("Avg Tip (Credit Card Only):")
+df_clean.filter(col("payment_type") == 1).select(avg("tip_amount").alias("avg_tip")).show()
+
+# Zero tip % (credit cards)
+total_cc = df_clean.filter(col("payment_type") == 1).count()
+zero_tip_cc = df_clean.filter((col("payment_type") == 1) & (col("tip_amount") == 0)).count()
+zero_tip_percent = (zero_tip_cc / total_cc) * 100 if total_cc else 0
+print(f"Zero-tip rides (credit card): {zero_tip_percent:.2f}%")
+
+# ADVANCED EXTENSIONS
+
+# File size (if local Colab path known)
+import os
+dataset_path = "/content/yellow_tripdata_2025-01.parquet"
+if os.path.exists(dataset_path):
+    size_mb = os.path.getsize(dataset_path) / (1024 * 1024)
+    print(f"Dataset size: {size_mb:.2f} MB")
+
+# Trip Duration in Minutes
+df_clean = df_clean.withColumn(
+    "trip_duration_min",
+    (unix_timestamp("tpep_dropoff_datetime") - unix_timestamp("tpep_pickup_datetime")) / 60
+)
+
+print("Trip Duration Stats (Minutes):")
+df_clean.select(
+    round(avg("trip_duration_min"), 2).alias("avg_duration"),
+    round(_max("trip_duration_min"), 2).alias("max_duration"),
+    round(_min("trip_duration_min"), 2).alias("min_duration")
+).show()
+
+# Hourly revenue trend
+print("Hourly Revenue:")
+df_clean.withColumn("pickup_hour", hour("tpep_pickup_datetime")) \
+    .groupBy("pickup_hour").agg(_sum("total_amount").alias("hourly_revenue")) \
+    .orderBy("pickup_hour").show(24)
+
+# Top revenue-generating pickup zones
+print("Top Revenue Pickup Zones:")
+df_clean.groupBy("PULocationID") \
+    .agg(_sum("total_amount").alias("total_earnings")) \
+    .orderBy("total_earnings", ascending=False).show(10)
+
+# High tip behavior
+high_tip_count = df_clean.filter((col("payment_type") == 1) & (col("tip_amount") > 5)).count()
+high_tip_percent = (high_tip_count / total_cc) * 100 if total_cc else 0
+print(f"Credit card trips with tips > $5: {high_tip_percent:.2f}%")
+
+# Outlier trips (distance)
+print("Top 5 Longest Trips by Distance:")
+df_clean.orderBy(col("trip_distance").desc()) \
+    .select("trip_distance", "fare_amount", "total_amount", "trip_duration_min").show(5)
+
+# All analysis completed
+print("Analysis complete. Stopping Spark session.")
+spark.stop()

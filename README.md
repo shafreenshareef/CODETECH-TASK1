@@ -125,4 +125,16 @@ Key outcomes include:
 - Tip behavior and payment type statistics
 - Duration-based and distance-based outlier detection
 
+  # OUTPUT
+![Image](https://github.com/user-attachments/assets/2aa26513-6d9d-40e1-883b-607c7f0f8e0f)
+![Image](https://github.com/user-attachments/assets/5eea03d3-3a67-4732-a860-b31c5b2f50f1)
+![Image](https://github.com/user-attachments/assets/49676aa6-c4f4-45bf-8fe4-599b41fac066)
+![Image](https://github.com/user-attachments/assets/fcefa0de-951c-42af-9f6a-b6d46eb304a7)
+![Image](https://github.com/user-attachments/assets/218ef49d-1d4e-4fc4-a92f-b4d4dffbeb74)
+![Image](https://github.com/user-attachments/assets/6b8ad643-eba0-4947-8576-45d5f951534b)
+![Image](https://github.com/user-attachments/assets/131a0088-1817-4535-bac9-c5f1f163dcf0)
+![Image](https://github.com/user-attachments/assets/47038ab9-1c82-4172-9d87-c54ca5f4747c)
+![Image](https://github.com/user-attachments/assets/e6ba1fbf-5954-414d-aa89-aa8c629aefea)
+  
+
 
